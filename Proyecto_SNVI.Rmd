@@ -72,7 +72,6 @@ resumen.sin.incendios <- sin.incendios.pivot %>%
   )
 ```
 
-
 # Gráficos
 
 Se procede a realizar distintos gráficos entre las variables de la base.
@@ -109,7 +108,3 @@ ggplot(incendios, aes(x = FFMC, y = BUI, color = Classes)) +
        color = "") +
   theme_cowplot()
 ```
-
-
-
-
