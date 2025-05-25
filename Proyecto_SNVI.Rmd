@@ -43,8 +43,6 @@ dias.sin.incendios <- subset(incendios, Classes == "Sin incendio")
 dias.sin.incendios <- dias.sin.incendios[, -14]
 ```
 
-A
-
 ```{r resumen.con.incendios}
 incendios.pivot <- dias.con.incendios %>%
   pivot_longer(cols = everything(),
@@ -61,8 +59,6 @@ resumen.incendios <- incendios.pivot %>%
     desviacion = sd(valor, na.rm = TRUE)
   )
 ```
-
-A
 
 ```{r resumen.sin.incendios}
 sin.incendios.pivot <- dias.sin.incendios %>%
@@ -81,7 +77,7 @@ resumen.sin.incendios <- sin.incendios.pivot %>%
   )
 ```
 
-A
+Posteriormente, se realizan gráficos de correlaciones tanta cuando hubo incendio como para cuando no.
 
 ```{r correlaciones, fig.width=12, fig.height=10}
 # Correlación de los dias con incendios
