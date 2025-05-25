@@ -12,7 +12,9 @@ Se cargan las librerías necesarias.
 ```{r librerias}
 pacman::p_load(ggplot2,
                readxl,
-               cowplot)
+               cowplot,
+               dplyr,
+               tidyr)
 ```
 
 Se lee la base de incendios forestales en Argelia.
@@ -28,7 +30,48 @@ incendios$Classes <- factor(incendios$Classes,
 
 # Resumen descriptivo y análisis de correlación
 
-A
+Como primer paso, se calculan algunas estadísticas descriptivas tanto para cuando ocurrió un incendio como para cuando no. 
+
+```{r filtrar.incendios}
+
+dias.con.incendios <- subset(incendios, Classes == "Con incendio")
+dias.sin.incendios <- subset(incendios, Classes == "Sin incendio")
+
+```
+
+```{r resumen.incendios}
+incendios.pivot <- dias.con.incendios %>%
+  select(-Classes) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
+
+resumen.incendios <- incendios.pivot %>%
+  group_by(variable) %>%
+  summarise(
+    promedio = mean(valor, na.rm = TRUE),
+    minimo = min(valor, na.rm = TRUE),
+    mediana = median(valor, na.rm = TRUE),
+    maximo = max(valor, na.rm = TRUE),
+    desviacion = sd(valor, na.rm = TRUE)
+  )
+
+```
+
+```{r resumen.sin.incendios}
+sin.incendios.pivot <- dias.sin.incendios %>%
+  select(-Classes) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
+
+resumen.sin.incendios <- sin.incendios.pivot %>%
+  group_by(variable) %>%
+  summarise(
+    promedio = mean(valor, na.rm = TRUE),
+    minimo = min(valor, na.rm = TRUE),
+    mediana = median(valor, na.rm = TRUE),
+    maximo = max(valor, na.rm = TRUE),
+    desviacion = sd(valor, na.rm = TRUE)
+  )
+```
+
 
 # Gráficos
 
