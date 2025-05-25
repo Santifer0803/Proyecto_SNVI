@@ -14,7 +14,8 @@ pacman::p_load(ggplot2,
                readxl,
                cowplot,
                dplyr,
-               tidyr)
+               tidyr,
+               corrplot)
 ```
 
 Se lee la base de incendios forestales en Argelia.
@@ -35,7 +36,11 @@ Como primer paso, se calculan algunas estadísticas descriptivas tanto para cuan
 ```{r filtrar.incendios}
 
 dias.con.incendios <- subset(incendios, Classes == "Con incendio")
+dias.con.incendios <- dias.con.incendios[, -14]
+
 dias.sin.incendios <- subset(incendios, Classes == "Sin incendio")
+dias.sin.incendios <- dias.sin.incendios[, -14]
+
 
 ```
 
@@ -71,6 +76,40 @@ resumen.sin.incendios <- sin.incendios.pivot %>%
     desviacion = sd(valor, na.rm = TRUE)
   )
 ```
+
+```{r correlaciones, fig.width=12, fig.height=10}
+# Correlación de los dias de incendios
+cor.incendios <- cor(dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0], dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0]) #solo valores varianza mayor a 0
+
+
+corrplot(
+  cor.incendios,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  addCoef.col = "lightcoral",
+  number.cex = 0.7,
+  number.digits = 3
+)
+
+# Correlación de los dias sin incendios
+cor.sin.incendios <- cor(dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0], dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0]) #solo valores varianza mayor a 0
+
+# Correlación de los dias sin incendios
+corrplot(
+  cor.sin.incendios,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  addCoef.col = "lightcoral",
+  number.cex = 0.7,
+  number.digits = 3
+)
+
+
+```
+
+
 
 # Gráficos
 
