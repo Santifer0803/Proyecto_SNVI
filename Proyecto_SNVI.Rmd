@@ -24,9 +24,11 @@ Se lee la base de incendios forestales en Argelia.
 incendios <- read_excel("data/Incendios.xlsx")
 
 # Se cambia el nombre de las categorías de la variable Classes
-incendios$Classes <- factor(incendios$Classes,
-                            levels = c("not fire", "fire"),
-                            labels = c("Sin incendio", "Con incendio"))
+incendios$Classes <- factor(
+  incendios$Classes,
+  levels = c("not fire", "fire"),
+  labels = c("Sin incendio", "Con incendio")
+)
 ```
 
 # Resumen descriptivo y análisis de correlación
@@ -34,19 +36,20 @@ incendios$Classes <- factor(incendios$Classes,
 Como primer paso, se calculan algunas estadísticas descriptivas tanto para cuando ocurrió un incendio como para cuando no. 
 
 ```{r filtrar.incendios}
-
 dias.con.incendios <- subset(incendios, Classes == "Con incendio")
 dias.con.incendios <- dias.con.incendios[, -14]
 
 dias.sin.incendios <- subset(incendios, Classes == "Sin incendio")
 dias.sin.incendios <- dias.sin.incendios[, -14]
-
-
 ```
 
-```{r resumen.incendios}
+A
+
+```{r resumen.con.incendios}
 incendios.pivot <- dias.con.incendios %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
+  pivot_longer(cols = everything(),
+               names_to = "variable",
+               values_to = "valor")
 
 resumen.incendios <- incendios.pivot %>%
   group_by(variable) %>%
@@ -57,12 +60,15 @@ resumen.incendios <- incendios.pivot %>%
     maximo = max(valor, na.rm = TRUE),
     desviacion = sd(valor, na.rm = TRUE)
   )
-
 ```
+
+A
 
 ```{r resumen.sin.incendios}
 sin.incendios.pivot <- dias.sin.incendios %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
+  pivot_longer(cols = everything(),
+               names_to = "variable",
+               values_to = "valor")
 
 resumen.sin.incendios <- sin.incendios.pivot %>%
   group_by(variable) %>%
@@ -75,73 +81,219 @@ resumen.sin.incendios <- sin.incendios.pivot %>%
   )
 ```
 
-```{r correlaciones, fig.width=12, fig.height=10}
-# Correlación de los dias de incendios
-cor.incendios <- cor(dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0], dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0]) #solo valores varianza mayor a 0
+A
 
+```{r correlaciones, fig.width=12, fig.height=10}
+# Correlación de los dias con incendios
+cor.incendios <- cor(dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0], dias.con.incendios[, apply(dias.con.incendios, 2, var, na.rm = TRUE) != 0]) # Solo valores con varianza mayor a 0
 
 corrplot(
   cor.incendios,
   method = "color",
   type = "upper",
   order = "hclust",
-  addCoef.col = "lightcoral",
+  addCoef.col = "black",
   number.cex = 0.7,
   number.digits = 3
 )
 
 # Correlación de los dias sin incendios
-cor.sin.incendios <- cor(dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0], dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0]) #solo valores varianza mayor a 0
+cor.sin.incendios <- cor(dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0], dias.sin.incendios[, apply(dias.sin.incendios, 2, var, na.rm = TRUE) != 0]) # Solo valores con varianza mayor a 0
 
-# Correlación de los dias sin incendios
 corrplot(
   cor.sin.incendios,
   method = "color",
   type = "upper",
   order = "hclust",
-  addCoef.col = "lightcoral",
+  addCoef.col = "black",
   number.cex = 0.7,
   number.digits = 3
 )
-
-
 ```
 
+# Gráficos entre variables
 
+Se procede a realizar distintos gráficos entre los valores de las variables presentes en la base.
+Paara esto, se usa como referencia el apartado anterior, graficando solo variables que tengan una correlación mayor a 0.5 (con algunas excepciones).
 
-# Gráficos
+## Variables vs. FFMC
 
-Se procede a realizar distintos gráficos entre las variables de la base.
-
-## DMC vs. FFMC
-
-```{r DMC_FFMC}
+```{r Variables_FFMC}
+# DMC vs. FFMMC
 ggplot(incendios, aes(x = FFMC, y = DMC, color = Classes)) +
   geom_point() +
   labs(x = "FFMC",
        y = "DMC",
        color = "") +
   theme_cowplot()
-```
 
-## ISI vs. FFMC
+# DC vs. FFMMC
+ggplot(incendios, aes(x = FFMC, y = DC, color = Classes)) +
+  geom_point() +
+  labs(x = "FFMC",
+       y = "DC",
+       color = "") +
+  theme_cowplot()
 
-```{r ISI_FFMC}
+# ISI vs. FFMMC
 ggplot(incendios, aes(x = FFMC, y = ISI, color = Classes)) +
   geom_point() +
   labs(x = "FFMC",
        y = "ISI",
        color = "") +
   theme_cowplot()
-```
 
-## BUI vs. FFMC
-
-```{r BUI_FFMC}
+# BUI vs. FFMMC
 ggplot(incendios, aes(x = FFMC, y = BUI, color = Classes)) +
   geom_point() +
   labs(x = "FFMC",
        y = "BUI",
        color = "") +
   theme_cowplot()
+
+# FWI vs. FFMMC
+ggplot(incendios, aes(x = FFMC, y = FWI, color = Classes)) +
+  geom_point() +
+  labs(x = "FFMC",
+       y = "FWI",
+       color = "") +
+  theme_cowplot()
+
+# Temperatura vs. FFMMC
+ggplot(incendios, aes(x = FFMC, y = Temperature, color = Classes)) +
+  geom_point() +
+  labs(x = "FFMC",
+       y = "Temperatura",
+       color = "") +
+  theme_cowplot()
+
+# RH vs. FFMMC
+ggplot(incendios, aes(x = FFMC, y = RH, color = Classes)) +
+  geom_point() +
+  labs(x = "FFMC",
+       y = "RH",
+       color = "") +
+  theme_cowplot()
+
+# Lluvia vs. FFMMC
+ggplot(incendios, aes(x = FFMC, y = Rain, color = Classes)) +
+  geom_point() +
+  labs(x = "FFMC",
+       y = "Lluvia",
+       color = "") +
+  theme_cowplot()
 ```
+
+## ISI y Temperatura vs. RH
+
+```{r RH_Rain_FFMC}
+# ISI vs. RH
+ggplot(incendios, aes(x = RH, y = ISI, color = Classes)) +
+  geom_point() +
+  labs(x = "RH",
+       y = "ISI",
+       color = "") +
+  theme_cowplot()
+
+# Temperatura vs. RH
+ggplot(incendios, aes(x = RH, y = Temperature, color = Classes)) +
+  geom_point() +
+  labs(x = "RH",
+       y = "Temperatura",
+       color = "") +
+  theme_cowplot()
+```
+
+## Variables vs. FWI
+
+```{r Variables_FWI}
+# DC vs. FWI
+ggplot(incendios, aes(x = FWI, y = DC, color = Classes)) +
+  geom_point() +
+  labs(x = "FWI",
+       y = "DC",
+       color = "") +
+  theme_cowplot()
+
+# DMC vs. FWI
+ggplot(incendios, aes(x = FWI, y = DMC, color = Classes)) +
+  geom_point() +
+  labs(x = "FWI",
+       y = "DMC",
+       color = "") +
+  theme_cowplot()
+
+# BUI vs. FWI
+ggplot(incendios, aes(x = FWI, y = BUI, color = Classes)) +
+  geom_point() +
+  labs(x = "FWI",
+       y = "BUI",
+       color = "") +
+  theme_cowplot()
+
+# Temperatura vs. FWI
+ggplot(incendios, aes(x = FWI, y = Temperature, color = Classes)) +
+  geom_point() +
+  labs(x = "FWI",
+       y = "Temperatura",
+       color = "") +
+  theme_cowplot()
+
+# ISI vs. FWI
+ggplot(incendios, aes(x = FWI, y = ISI, color = Classes)) +
+  geom_point() +
+  labs(x = "FWI",
+       y = "ISI",
+       color = "") +
+  theme_cowplot()
+```
+
+## Variables vs. DC
+
+```{r Vaiables_DC}
+# BUI vs. DC
+ggplot(incendios, aes(x = DC, y = BUI, color = Classes)) +
+  geom_point() +
+  labs(x = "DC",
+       y = "BUI",
+       color = "") +
+  theme_cowplot()
+
+# Temperatura vs. DC
+ggplot(incendios, aes(x = DC, y = Temperature, color = Classes)) +
+  geom_point() +
+  labs(x = "DC",
+       y = "Temperatura",
+       color = "") +
+  theme_cowplot()
+
+# ISI vs. DC
+ggplot(incendios, aes(x = DC, y = ISI, color = Classes)) +
+  geom_point() +
+  labs(x = "DC",
+       y = "ISI",
+       color = "") +
+  theme_cowplot()
+```
+
+## ISI y BUI vs. DMC
+
+```{r ISI_BUI_DMC}
+# ISI vs. DMC
+ggplot(incendios, aes(x = DMC, y = ISI, color = Classes)) +
+  geom_point() +
+  labs(x = "DMC",
+       y = "ISI",
+       color = "") +
+  theme_cowplot()
+
+# BUI vs. DMC
+ggplot(incendios, aes(x = DMC, y = BUI, color = Classes)) +
+  geom_point() +
+  labs(x = "DMC",
+       y = "BUI",
+       color = "") +
+  theme_cowplot()
+```
+
+
