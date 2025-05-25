@@ -46,7 +46,6 @@ dias.sin.incendios <- dias.sin.incendios[, -14]
 
 ```{r resumen.incendios}
 incendios.pivot <- dias.con.incendios %>%
-  select(-Classes) %>%
   pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
 
 resumen.incendios <- incendios.pivot %>%
@@ -63,7 +62,6 @@ resumen.incendios <- incendios.pivot %>%
 
 ```{r resumen.sin.incendios}
 sin.incendios.pivot <- dias.sin.incendios %>%
-  select(-Classes) %>%
   pivot_longer(cols = everything(), names_to = "variable", values_to = "valor")
 
 resumen.sin.incendios <- sin.incendios.pivot %>%
