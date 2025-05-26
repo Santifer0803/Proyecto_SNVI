@@ -106,6 +106,39 @@ corrplot(
   number.digits = 3
 )
 ```
+Ahora las correlaciones sin incluir las fecha
+
+```{r correlaciones.nf, fig.width=12, fig.height=10}
+dias.con.incendios.nf <- dias.con.incendios[, -c(1,2,3)]
+dias.sin.incendios.nf <- dias.sin.incendios[, -c(1,2,3)]
+
+
+cor.sin.incendios.nf <- cor(dias.sin.incendios.nf[, apply(dias.sin.incendios.nf, 2, var, na.rm = TRUE) != 0], dias.sin.incendios.nf[, apply(dias.sin.incendios.nf, 2, var, na.rm = TRUE) != 0]) # Solo valores con varianza mayor a 0
+
+corrplot(
+  cor.sin.incendios.nf,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  addCoef.col = "black",
+  number.cex = 0.7,
+  number.digits = 3
+)
+
+cor.con.incendios.nf <- cor(dias.con.incendios.nf[, apply(dias.con.incendios.nf, 2, var, na.rm = TRUE) != 0], dias.con.incendios.nf[, apply(dias.con.incendios.nf, 2, var, na.rm = TRUE) != 0]) # Solo valores con varianza mayor a 0
+
+corrplot(
+  cor.con.incendios.nf,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  addCoef.col = "black",
+  number.cex = 0.7,
+  number.digits = 3
+)
+```
+
+
 
 # Gráficos entre variables
 
