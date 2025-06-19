@@ -10,12 +10,19 @@ output: html_document
 Se cargan las librerías necesarias.
 
 ```{r librerias}
+# Si no funciona descargar caret, usen lo siguiente:
+
+# options(repos = c(CRAN = "https://cloud.r-project.org"))
+# remove.packages(c("future", "future.apply", "parallelly", "recipes"))
+# install.packages(c("parallelly", "future", "future.apply", "recipes", "caret"), type = "binary")
 pacman::p_load(ggplot2,
                readxl,
                cowplot,
                dplyr,
                tidyr,
-               corrplot)
+               corrplot,
+               future.apply,
+               caret)
 ```
 
 Se lee la base de incendios forestales en Argelia.
@@ -325,4 +332,54 @@ ggplot(incendios, aes(x = DMC, y = BUI, color = Classes)) +
   theme_cowplot()
 ```
 
+# Ajuste de los modelos
+
+## Separación de los datos
+
+Debido a la poca cantidad de observaciones en las bases de datos, se realiza una separación 80/20 en los datos de *training* y *testing* respectivamente.
+
+```{r separacion_datos}
+# Semilla para reproducibilidad
+set.seed(333)
+
+# Se cambia la variable objetivo a numérica, 1 significa que hubo incendio, 0 que no
+incendios <- incendios %>% mutate(Classes = as.numeric(Classes == "Con incendio"))
+
+# Se agrega una columna de id a la base de datos
+incendios$id <- 1:nrow(incendios)
+
+# Se pone de primera la variable de id
+incendios <- incendios %>% select(id, colnames(incendios[, 1:ncol(incendios)]))
+
+# Se obtienen los datos de training y testing
+data.train <- incendios %>% sample_frac(0.8)
+data.test <- anti_join(incendios, data.train, by = "id")
+```
+
+
+## Random forest
+
+a
+
+## XGBoost
+
+Luego, nos centramos en el XGBoost. Para este caso usamos la librería [caret](https://topepo.github.io/caret/index.html) para obtener el ajuste. En particular, en el método del [XGBoost](https://www-geeksforgeeks-org.translate.goog/machine-learning/different-results-xgboost-vs-caret-in-r/?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=es&_x_tr_pto=tc) que ofrece el paquete.
+
+```{r ajuste_xgb}
+# Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo
+  ## method: Método de remuestreo, en este caso, de validación cruzada
+  ## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
+  ## verboseIter: Para imprimir (TRUE) el registro de entrenamiento
+  ## classProbs: Define si se calculan las probabilidades para las muestras obtenidas del remuestreo
+  ## selectionFunction: Permite definir los parámetros óptimos. Si se ignora, se hace de forma automática
+  ## returnResamp: Permite guardar los remuestreos
+  ## allowParallel: Permite la paralelización
+fitControl <-
+  trainControl(
+    method = "cv",
+    number = 5,
+    verboseIter = FALSE,
+    classProbs = TRUE
+  )
+```
 
