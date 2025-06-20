@@ -343,7 +343,7 @@ Debido a la poca cantidad de observaciones en las bases de datos, se realiza una
 
 ```{r separacion_datos}
 # Semilla para reproducibilidad
-set.seed(333)
+set.seed(0609)
 
 # Se cambia la variable objetivo a numérica, 1 significa que hubo incendio, 0 que no
 incendios <- incendios %>% mutate(Classes = ifelse(Classes == "Con incendio", "Incendio", "No.incendio"))
@@ -426,7 +426,7 @@ a
 
 En este punto, se muestran algunas de las metricas del modelo XGBoost.
 
-Inicialmente, se puede apreciar uno de los árboles de decisión construidos, este corresponde a separar la variable objetivo en aquellas con un valor menor de $ISI \approx 2.7$ y aquellas con un valor mayor.
+Inicialmente, se puede apreciar uno de los árboles de decisión construidos, este corresponde a separar la variable objetivo en aquellas con un valor menor de $ISI \approx 2.6$ y aquellas con un valor mayor.
 
 ```{r metricas_xgb}
 xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
