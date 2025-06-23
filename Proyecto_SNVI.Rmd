@@ -413,8 +413,9 @@ modelo.xgb
 
 En este caso, se pueden ver los parámetros óptimos del modelo, en donde:
   - nrounds: Es la cantidad de iteraciones (o árboles, en este caso) óptima.
-  - interaction.depth: Es la complejidad (o profundidad del árbol).
-  - shrink: 
+  - max_depth: Es la complejidad (o profundidad del árbol) máxima.
+  - eta (learning rate): Es un parámetro de que se usa para ajustar el modelo, este mejora la presición del algoritmo. En concreto, este indica la resistencia del modelo al sobreajuste. (https://primo-tc-na01.hosted.exlibrisgroup.com/primo-explore/fulldisplay?docid=TN_cdi_proquest_journals_2608081906&context=PC&vid=SIBDI&lang=es_CR&search_scope=sibdiucr_completo&adaptor=primo_central_multiple_fe&tab=sibdiucr_tab&query=any,contains,eta%20xgboost&offset=0)
+  - gamma (min split loss): Es un parámetro que indica el aumento mínimo en la función objetivo (el ROC en este caso), para que el árbol se divida (https://xgboost.readthedocs.io/en/stable/parameter.html). Al ser 0, el algoritmo no es muy conservador. Además, este tiene un peso muy significativo en la predicción final del XGBoost (https://primo-tc-na01.hosted.exlibrisgroup.com/primo-explore/fulldisplay?docid=TN_cdi_acm_books_10_1145_3357254_3357290_brief&context=PC&vid=SIBDI&lang=es_CR&search_scope=sibdiucr_completo&adaptor=primo_central_multiple_fe&tab=sibdiucr_tab&query=any,contains,gamma%20xgboost&offset=0)
 
 # Resultados
 
@@ -432,5 +433,24 @@ Inicialmente, se puede apreciar uno de los árboles de decisión construidos, es
 # Gráfico de un árbol de decisión
 # xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
 ```
+
+Se procede a mostrar la [importancia](https://topepo.github.io/caret/variable-importance.html#an-example-2) de cada una de las variables en el modelo, esto en escala del 0 al 100.
+
+```{r importancia_xgb}
+# Se guarda la importancia de las variables
+importancia <- varImp(modelo.xgb, scale = FALSE)
+
+# Se deja solo el dataframe
+importancia <- data.frame(variable = rownames(importancia[[1]]),
+                          promedio_importancia = importancia[[1]][, 1])
+
+# Se grafica lo anterior
+ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedio_importancia)) +
+  geom_bar(stat = "identity", fill = "#F8766D") +
+  coord_flip() +
+  labs(x = "Categoría", y = "Valor", title = "Gráfico de barras horizontal") +
+  theme_cowplot()
+```
+
 
 
