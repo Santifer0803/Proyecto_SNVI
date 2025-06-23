@@ -429,7 +429,8 @@ En este punto, se muestran algunas de las metricas del modelo XGBoost.
 Inicialmente, se puede apreciar uno de los árboles de decisión construidos, este corresponde a separar la variable objetivo en aquellas con un valor menor de $ISI \approx 2.6$ y aquellas con un valor mayor.
 
 ```{r metricas_xgb}
-xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
+# Gráfico de un árbol de decisión
+# xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
 ```
 
 
