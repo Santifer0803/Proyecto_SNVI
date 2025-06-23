@@ -24,8 +24,7 @@ pacman::p_load(ggplot2,
                future.apply,
                caret,
                xgboost,
-               lattice,
-               DiagrammeR)
+               pROC)
 ```
 
 Se lee la base de incendios forestales en Argelia.
@@ -349,7 +348,7 @@ set.seed(0609)
 incendios <- incendios %>% mutate(Classes = ifelse(Classes == "Con incendio", "Incendio", "No.incendio"))
 
 # Se modifica la variable objetivo como factor
-incendios$Classes <- factor(incendios$Classes)
+incendios$Classes <- factor(incendios$Classes, levels = c("Incendio", "No.incendio"))
 
 # Se agrega una columna de id a la base de datos
 incendios$id <- 1:nrow(incendios)
@@ -452,5 +451,55 @@ ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedi
   theme_cowplot()
 ```
 
+Se procede con la curva ROC, que fue la métrica que se maximizó en este caso.
 
+```{r roc_xgb}
+# Se predicen las probabilidades con los datos de testing
+prediccion.xgb <-
+  predict(modelo.xgb, newdata = data.test, type = "prob")
+
+# Curva ROC
+roc.xgb <-
+  roc(
+    response = data.test$Classes,
+    predictor = prediccion.xgb$Incendio,
+    levels = c("Incendio", "No.incendio"),
+    direction = ">"
+  )
+
+# Se grafica el ROC
+plot(roc.xgb, col = "#F8766D", lwd = 2, legacy.axes = TRUE)
+
+# Valor del AUC
+auc(roc.xgb)
+```
+
+Se continúa con la matriz de confusión.
+
+```{r matriz_conf_xgb}
+# Cambiamos el tipo de predicción
+prediccion.xgb <- predict(modelo.xgb, newdata = data.test)
+
+# Se extrae la matriz de confusión
+mat.conf.xgb <- confusionMatrix(prediccion.xgb, data.test$Classes)
+
+# Se pasa a data.frame
+mat.conf.xgb <- as.data.frame(mat.conf.xgb$table)
+
+# Se cambia a factor
+mat.conf.xgb$Reference <- factor(mat.conf.xgb$Reference, levels = levels(data.test$Classes))
+mat.conf.xgb$Prediction <- factor(mat.conf.xgb$Prediction, levels = c("No.incendio", "Incendio"))
+
+# Se grafica lo anterior
+ggplot(mat.conf.xgb, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 5, color = "black") +
+  scale_fill_gradient(low = "white", high = "#F8766D") +
+  labs(
+    x = "Predicción",
+    y = "Real"
+  ) +
+  theme_cowplot() +
+  theme(legend.position = "none")
+```
 
