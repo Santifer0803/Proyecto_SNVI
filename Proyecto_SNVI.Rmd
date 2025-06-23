@@ -468,10 +468,16 @@ roc.xgb <-
   )
 
 # Se grafica el ROC
-plot(roc.xgb, col = "#F8766D", lwd = 2, legacy.axes = TRUE)
+plot(roc.xgb,
+     col = "#F8766D",
+     lwd = 2,
+     legacy.axes = TRUE)
 
 # Valor del AUC
 auc(roc.xgb)
+
+# Valor del índice de Gini
+cat("Índice de Gini: ", 2 * auc(roc.xgb) - 1)
 ```
 
 Se continúa con la matriz de confusión.
@@ -481,25 +487,61 @@ Se continúa con la matriz de confusión.
 prediccion.xgb <- predict(modelo.xgb, newdata = data.test)
 
 # Se extrae la matriz de confusión
-mat.conf.xgb <- confusionMatrix(prediccion.xgb, data.test$Classes)
+mat.conf.xgb <-
+  confusionMatrix(prediccion.xgb, data.test$Classes, positive = "Incendio")
 
 # Se pasa a data.frame
 mat.conf.xgb <- as.data.frame(mat.conf.xgb$table)
 
 # Se cambia a factor
-mat.conf.xgb$Reference <- factor(mat.conf.xgb$Reference, levels = levels(data.test$Classes))
-mat.conf.xgb$Prediction <- factor(mat.conf.xgb$Prediction, levels = c("No.incendio", "Incendio"))
+mat.conf.xgb$Reference <-
+  factor(mat.conf.xgb$Reference, levels = levels(data.test$Classes))
+mat.conf.xgb$Prediction <-
+  factor(mat.conf.xgb$Prediction, levels = c("No.incendio", "Incendio"))
 
 # Se grafica lo anterior
 ggplot(mat.conf.xgb, aes(x = Prediction, y = Reference, fill = Freq)) +
   geom_tile(color = "white") +
   geom_text(aes(label = Freq), size = 5, color = "black") +
   scale_fill_gradient(low = "white", high = "#F8766D") +
-  labs(
-    x = "Predicción",
-    y = "Real"
-  ) +
+  labs(x = "Predicción",
+       y = "Real") +
   theme_cowplot() +
   theme(legend.position = "none")
+```
+
+Se procede con las métricas derivadas de la matriz de confusión.
+
+```{r metricas_xgb}
+# Se recalcula la matriz de confusión, para tenerla en el formato correspondiente
+mat.conf.xgb <-
+  confusionMatrix(prediccion.xgb, data.test$Classes, positive = "Incendio")
+
+# Métricas correspondientes
+cat("La acurracy (exactitud) es: ", mat.conf.xgb$overall["Accuracy"], "\n")
+cat("La sensibilidad es: ", mat.conf.xgb$byClass["Sensitivity"], "\n")
+cat("La especificidad es: ", mat.conf.xgb$byClass["Specificity"], "\n")
+cat("La precisión es: ", mat.conf.xgb$byClass["Precision"])
+```
+
+Finalmente, se tiene la pérdida logarítmica o log-loss.
+
+```{r logloss_xgb}
+# Se predicen las probabilidades con los datos de testing
+prediccion.xgb <-
+  predict(modelo.xgb, newdata = data.test, type = "prob")
+
+# Se obtienen las observaciones que son incendios
+prob.incendio <- prediccion.xgb$Incendio
+
+# Vector binario para saber si la clase es incendio o no
+obs.incendio <- data.test$Classes == "Incendio"
+
+# Se corrigen las probabilidades de incendio con un epsilon, por los valores extremos de [0, 1]
+prob.incendio <- pmin(pmax(prob.incendio, 1e-15), 1 - 1e-15)
+
+# Pérdida logarítmica
+log.loss <- -mean(obs.incendio * log(prob.incendio) + (1 - obs.incendio) * log(1 - prob.incendio))
+cat("La pérdida logarítmica (log-loss) es: ", log.loss)
 ```
 
