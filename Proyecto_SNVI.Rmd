@@ -394,14 +394,14 @@ control.entrenamiento <-
 ## method: Método a utilizar, en este caso, XGBoost
 ## trControl: El objeto con los parámetros óptimos encontrados anteriormente
 ## metric: La métrica a optimizar. En este caso, la curva ROC
-modelo.xgb <- suppressWarnings(train(
+modelo.xgb <- train(
   Classes ~ .,
   data = data.train,
   method = "xgbTree",
   trControl = control.entrenamiento,
   metric = "ROC",
   verbose = FALSE
-))
+)
 ```
 
 Podemos ver el modelo final se puede ver a continuación, en donde se pueden ver los parámetros óptimos del modelo, resultados del remuestreo, algunas métricas
