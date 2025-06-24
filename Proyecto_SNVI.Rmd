@@ -30,7 +30,12 @@ pacman::p_load(ggplot2,
 Se lee la base de incendios forestales en Argelia.
 
 ```{r base_incendios}
-incendios <- read_excel("data/Incendios.xlsx")
+# Bases de datos
+incendios.B <- read_excel("data/Incendios.xlsx", sheet = "Bejaia")
+incendios.SB <- read_excel("data/Incendios.xlsx", sheet = "Bejaia")
+
+# Se juntan las bases
+incendios <- rbind(incendios.B, incendios.SB)
 
 # Se cambia el nombre de las categorías de la variable Classes
 incendios$Classes <- factor(
@@ -371,40 +376,122 @@ a
 Luego, nos centramos en el XGBoost. Para este caso usamos la librería [caret](https://topepo.github.io/caret/index.html) para obtener el ajuste. En particular, en el método del [XGBoost](https://www-geeksforgeeks-org.translate.goog/machine-learning/different-results-xgboost-vs-caret-in-r/?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=es&_x_tr_pto=tc) que ofrece el paquete.
 
 ```{r ajuste_xgb}
-# Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo
-## method: Método de remuestreo, en este caso, de validación cruzada
-## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
-## verboseIter: Para imprimir (TRUE) el registro de entrenamiento
-## classProbs: Define si se calculan las probabilidades para las muestras obtenidas del remuestreo
-## selectionFunction: Permite definir los parámetros óptimos según una métrica. En este caso, para clasificación binaria
-## returnResamp: Permite guardar los remuestreos
-## allowParallel: Permite la paralelización
-control.entrenamiento <-
-  trainControl(
-    method = "cv",
-    number = 5,
-    verboseIter = FALSE,
-    classProbs = TRUE,
-    summaryFunction = twoClassSummary
-  )
+# Lista para iteraciones
+lista.ll <- list()
+lista.int <- list()
 
-# Se define el modelo del XGBoost. Internamente tiene una variable desactualizada en caret, por lo que puede tirar un warning
-## x: Variable objetivo (la que se busca predecir)
-## data: Datos a utilizar (debe ser DataFrame)
-## method: Método a utilizar, en este caso, XGBoost
-## trControl: El objeto con los parámetros óptimos encontrados anteriormente
-## metric: La métrica a optimizar. En este caso, la curva ROC
-modelo.xgb <- train(
-  Classes ~ .,
-  data = data.train,
-  method = "xgbTree",
-  trControl = control.entrenamiento,
-  metric = "ROC",
-  verbose = FALSE
-)
+# Para ver el número óptimo de iteraciones de validación cruzada, se prueban todos los valores del 1 al 10 y se compara con la pérdida logarítmica
+for (i in 2:5) {
+  # Ciclo para tomar en cuenta la variabilidad de las observaciones
+  for (j in 1:10) {
+    # Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo.
+    ## method: Método de remuestreo, en este caso, de validación cruzada
+    ## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
+    ## verboseIter: Para imprimir (TRUE) el registro de entrenamiento
+    ## classProbs: Define si se calculan las probabilidades para las muestras obtenidas del remuestreo
+    ## selectionFunction: Permite definir los parámetros óptimos según una métrica. En este caso, para clasificación binaria
+    ## returnResamp: Permite guardar los remuestreos
+    ## allowParallel: Permite la paralelización
+    control.entrenamiento <-
+      trainControl(
+        method = "cv",
+        number = i,
+        verboseIter = FALSE,
+        classProbs = TRUE,
+        summaryFunction = twoClassSummary
+      )
+    
+    # Se define el modelo del XGBoost. Internamente tiene una variable desactualizada en caret, por lo que puede tirar un warning
+    ## x: Variable objetivo (la que se busca predecir)
+    ## data: Datos a utilizar (debe ser DataFrame)
+    ## method: Método a utilizar, en este caso, XGBoost
+    ## trControl: El objeto con los parámetros óptimos encontrados anteriormente
+    ## metric: La métrica a optimizar. En este caso, la curva ROC
+    modelo.xgb <- train(
+      Classes ~ .,
+      data = data.train,
+      method = "xgbTree",
+      trControl = control.entrenamiento,
+      metric = "ROC",
+      verbose = FALSE
+    )
+    
+    # Se calcula la pérdida logarítmica. Primero se predicen las probabilidades con los datos de testing
+    prediccion.xgb <-
+      predict(modelo.xgb, newdata = data.test, type = "prob")
+    
+    # Se obtienen las observaciones que son incendios
+    prob.incendio <- prediccion.xgb$Incendio
+    
+    # Vector binario para saber si la clase es incendio o no
+    obs.incendio <- data.test$Classes == "Incendio"
+    
+    # Se corrigen las probabilidades de incendio con un epsilon, por los valores extremos de [0, 1]
+    prob.incendio <- pmin(pmax(prob.incendio, 1e-15), 1 - 1e-15)
+    
+    # Se guardan las iteraciones con cada número de iteraciones
+    lista.int[[j]] <- -mean(obs.incendio * log(prob.incendio) + (1 - obs.incendio) * log(1 - prob.incendio))
+  }
+  
+  
+  # Pérdida logarítmica
+  lista.ll[[(i - 1)]] <- c(i, mean(unlist(lista.int)))
+}
+
+# Se pasan los resultados a un dataframe
+df.logloss <- as.data.frame(do.call(rbind, lista.ll))
+
+# Se cambian los nombres
+colnames(df.logloss) <- c("iter", "logl")
+
+# Se grafica cada resultado obtenido
+ggplot(df.logloss, aes(x = iter, y = logl)) +
+  geom_line(color = "#F8766D") +
+  geom_point(color = "#F8766D",
+             size = 3,
+             shape = 16) +
+  labs(x = "Cantidad de iteraciones",
+       y = "Pérdida logarítmica")
 ```
 
-Podemos ver el modelo final se puede ver a continuación, en donde se pueden ver los parámetros óptimos del modelo, resultados del remuestreo, algunas métricas
+Debido a que una pérdida logarítmica menor implica un mejor modelo, se seleccionó el modelo de validación cruzada con 3 iteraciones. 
+
+```{r modelo_final}
+# Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo.
+    ## method: Método de remuestreo, en este caso, de validación cruzada
+    ## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
+    ## verboseIter: Para imprimir (TRUE) el registro de entrenamiento
+    ## classProbs: Define si se calculan las probabilidades para las muestras obtenidas del remuestreo
+    ## selectionFunction: Permite definir los parámetros óptimos según una métrica. En este caso, para clasificación binaria
+    ## returnResamp: Permite guardar los remuestreos
+    ## allowParallel: Permite la paralelización
+    control.entrenamiento <-
+      trainControl(
+        method = "cv",
+        number = 3,
+        verboseIter = FALSE,
+        classProbs = TRUE,
+        summaryFunction = twoClassSummary
+      )
+    
+    # Se define el modelo del XGBoost. Internamente tiene una variable desactualizada en caret, por lo que puede tirar un warning
+    ## x: Variable objetivo (la que se busca predecir)
+    ## data: Datos a utilizar (debe ser DataFrame)
+    ## method: Método a utilizar, en este caso, XGBoost
+    ## trControl: El objeto con los parámetros óptimos encontrados anteriormente
+    ## metric: La métrica a optimizar. En este caso, la curva ROC
+    modelo.xgb <- train(
+      Classes ~ .,
+      data = data.train,
+      method = "xgbTree",
+      trControl = control.entrenamiento,
+      metric = "ROC",
+      verbose = FALSE
+    )
+```
+
+
+En este se pueden ver los parámetros óptimos del modelo, resultados del remuestreo, algunas métricas
 
 ```{r xgb_final}
 modelo.xgb
