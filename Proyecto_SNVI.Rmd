@@ -451,7 +451,8 @@ ggplot(df.logloss, aes(x = iter, y = logl)) +
              size = 3,
              shape = 16) +
   labs(x = "Cantidad de iteraciones",
-       y = "Pérdida logarítmica")
+       y = "Pérdida logarítmica") +
+  theme_minimal()
 ```
 
 Debido a que una pérdida logarítmica menor implica un mejor modelo, se seleccionó el modelo de validación cruzada con 3 iteraciones. 
