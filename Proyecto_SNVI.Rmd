@@ -450,7 +450,7 @@ ggplot(df.logloss, aes(x = iter, y = logl)) +
   geom_point(color = "#F8766D",
              size = 3,
              shape = 16) +
-  labs(x = "Cantidad de iteraciones",
+  labs(x = "Cantidad de pliegues",
        y = "Pérdida logarítmica") +
   theme_minimal()
 ```
