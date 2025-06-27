@@ -32,7 +32,7 @@ Se lee la base de incendios forestales en Argelia.
 ```{r base_incendios}
 # Bases de datos
 incendios.B <- read_excel("data/Incendios.xlsx", sheet = "Bejaia")
-incendios.SB <- read_excel("data/Incendios.xlsx", sheet = "Bejaia")
+incendios.SB <- read_excel("data/Incendios.xlsx", sheet = "Sidi-Bel")
 
 # Se juntan las bases
 incendios <- rbind(incendios.B, incendios.SB)
