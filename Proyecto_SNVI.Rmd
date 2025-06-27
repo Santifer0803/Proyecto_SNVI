@@ -43,6 +43,13 @@ incendios$Classes <- factor(
   levels = c("not fire", "fire"),
   labels = c("Sin incendio", "Con incendio")
 )
+
+# Se elimina una observación incoherente
+incendios <- incendios[-166, ]
+
+# Se transforman las columnas afectadas a tipo numérico
+incendios$DC <- round(as.numeric(incendios$DC), 1)
+incendios$FWI <- round(as.numeric(incendios$FWI), 1)
 ```
 
 # Resumen descriptivo y análisis de correlación
@@ -120,6 +127,7 @@ corrplot(
   number.digits = 3
 )
 ```
+
 Ahora las correlaciones sin incluir las fecha
 
 ```{r correlaciones.nf, fig.width=12, fig.height=10}
@@ -151,8 +159,6 @@ corrplot(
   number.digits = 3
 )
 ```
-
-
 
 # Gráficos entre variables
 
