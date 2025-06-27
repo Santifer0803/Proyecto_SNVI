@@ -461,9 +461,11 @@ ggplot(df.logloss, aes(x = iter, y = logl)) +
   theme_minimal()
 ```
 
-Debido a que una pérdida logarítmica menor implica un mejor modelo, se seleccionó el modelo de validación cruzada con 3 iteraciones. 
+Debido a que una pérdida logarítmica menor implica un mejor modelo, se seleccionó el modelo de validación cruzada con 3 iteraciones.
 
-```{r modelo_final}
+Ahora, se crea un modelo completo, para ver la importancia que tienen todas las variables.
+
+```{r modelo_completo_xgb}
 # Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo.
     ## method: Método de remuestreo, en este caso, de validación cruzada
     ## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
@@ -482,6 +484,7 @@ Debido a que una pérdida logarítmica menor implica un mejor modelo, se selecci
       )
     
     # Se define el modelo del XGBoost. Internamente tiene una variable desactualizada en caret, por lo que puede tirar un warning
+    ## En el primer espacio se elige la variable objetivo y las variables a usar
     ## x: Variable objetivo (la que se busca predecir)
     ## data: Datos a utilizar (debe ser DataFrame)
     ## method: Método a utilizar, en este caso, XGBoost
@@ -497,6 +500,60 @@ Debido a que una pérdida logarítmica menor implica un mejor modelo, se selecci
     )
 ```
 
+Se determina la importancia de las variables.
+
+```{r importancia_completo_xgb}
+# Se guarda la importancia de las variables
+importancia <- varImp(modelo.xgb, scale = FALSE)
+
+# Se deja solo el dataframe
+importancia <- data.frame(variable = rownames(importancia[[1]]),
+                          promedio_importancia = importancia[[1]][, 1])
+
+# Se grafica lo anterior
+ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedio_importancia)) +
+  geom_bar(stat = "identity", fill = "#F8766D") +
+  coord_flip() +
+  labs(x = "Categoría", y = "Valor", title = "Gráfico de barras horizontal") +
+  theme_cowplot()
+```
+
+Se seleccionan las variables con más importancia. A saber, ISI y FFMC.
+
+```{r modelo_final_xgb}
+# Se define el control de entrenamiento, esto genera los parámetros que se usarán para el modelo.
+    ## method: Método de remuestreo, en este caso, de validación cruzada
+    ## number: Cantidad de pliegues de la validación cruzada (se puede graficar)
+    ## verboseIter: Para imprimir (TRUE) el registro de entrenamiento
+    ## classProbs: Define si se calculan las probabilidades para las muestras obtenidas del remuestreo
+    ## selectionFunction: Permite definir los parámetros óptimos según una métrica. En este caso, para clasificación binaria
+    ## returnResamp: Permite guardar los remuestreos
+    ## allowParallel: Permite la paralelización
+    control.entrenamiento <-
+      trainControl(
+        method = "cv",
+        number = 3,
+        verboseIter = FALSE,
+        classProbs = TRUE,
+        summaryFunction = twoClassSummary
+      )
+    
+    # Se define el modelo del XGBoost. Internamente tiene una variable desactualizada en caret, por lo que puede tirar un warning
+    ## En el primer espacio se elige la variable objetivo y las variables a usar
+    ## x: Variable objetivo (la que se busca predecir)
+    ## data: Datos a utilizar (debe ser DataFrame)
+    ## method: Método a utilizar, en este caso, XGBoost
+    ## trControl: El objeto con los parámetros óptimos encontrados anteriormente
+    ## metric: La métrica a optimizar. En este caso, la curva ROC
+    modelo.xgb <- train(
+      Classes ~ ISI + FFMC,
+      data = data.train,
+      method = "xgbTree",
+      trControl = control.entrenamiento,
+      metric = "ROC",
+      verbose = FALSE
+    )
+```
 
 En este se pueden ver los parámetros óptimos del modelo, resultados del remuestreo, algunas métricas
 
@@ -527,7 +584,7 @@ Inicialmente, se puede apreciar uno de los árboles de decisión construidos, es
 # xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
 ```
 
-Se procede a mostrar la [importancia](https://topepo.github.io/caret/variable-importance.html#an-example-2) de cada una de las variables en el modelo, esto en escala del 0 al 100.
+Se procede a mostrar la [importancia](https://topepo.github.io/caret/variable-importance.html#an-example-2) de cada una de las variables en el modelo, esto en escala del 0 al 1.
 
 ```{r importancia_xgb}
 # Se guarda la importancia de las variables
