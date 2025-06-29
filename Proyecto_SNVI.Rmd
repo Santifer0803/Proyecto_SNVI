@@ -24,6 +24,8 @@ pacman::p_load(ggplot2,
                future.apply,
                caret,
                xgboost,
+               randomForest,
+               tidyverse,
                pROC)
 ```
 
@@ -375,7 +377,180 @@ data.test <- anti_join(incendios, data.train, by = "id")
 
 ## Random forest
 
-a
+Lo primero es la construcción del modelo, note que ya están creadas los datos de entrenamiento y los datos de test. Con esto se procede con el cálculo del modelo, utilizando el siguiente código.
+
+```{r modelo: Random Forest}
+modelo <- randomForest(
+  Classes ~ . - id,         # No es necesario el id para el modelo.
+  data = data.train,        # Se le pasan los datos de entrenamiento.
+  ntree = 100,              # Número de árboles.
+  importance = TRUE         # Guardar la importancia, para visualización.
+)
+```
+
+El código anterior entonces crea el modelo, para observar los resultados, se imprime de la siguiente forma:
+
+```{r print Random Forest}
+print(modelo)
+```
+
+De donde se puede observar entonces que los errores de clasificación son muy bajos, el modelo está clasificando los incendios, como incendios, y solo se equivoca en 3. Cuando se tiene un no incencio, este también se equivoca en 3. Lo cual son números muy bajos y lo que sugiere que la clasificación que el modelo está realizando es muy buena. Como el Random Forest utiliza un método bootstrap, el OOB tirá un error bajo de apenas el 3%. 
+
+El siguiente código realizar la validación cruzada del modelo, es decir, va a dividir el conjunto de datos, en subconjuntos, donde algunos se usan de prueba y otros se usan de entrenamiento, pero el modelo iterará, lo que hace que se tengan varias rendimientos, y por último, para conseguir el rendmiento del modelo, se hace un promedio simple de los rendmientos obtenidos.
+
+El número de pliegues, o folds, es la cantidad de subconjuntos en la cual se va a partir el conjunto de datos, para el código se utilió 5, pero es un hiperpárametro, se pueden escoger otros, sin embargo, 5 es lo comúnmente utilizado. 
+
+Por otro lado, mtry es otro hiperparámetro que lo que busca es una diferenciación de los árboles, es decir, hacer que los árboles no sean iguales entre sí. 
+
+```{r validación cruzada Random Forest}
+set.seed(0609) # Fijamos la semilla
+
+control <- trainControl(
+  method = "cv", # Método de Validación Cruzada (Cross Validation)
+  number = 5, # Número de pliegues. 
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  verboseIter = TRUE
+)
+
+modelo_rf_cv <- train(
+  Classes ~ . - id,
+  data = data.train,
+  method = "rf",
+  ntree = 100,
+  trControl = control,
+  metric = "ROC"
+)
+
+print(modelo_rf_cv)
+```
+
+Según los resultados anteriores, el ROC más grande se obtiene cuando se toma como hiperparámetro la cantidad de variables aleatorias 7, es decir, el mtry = 7, eso significa que en cada árbol toma como variables aleatorias para clasificar 7 variables. (Un mtry muy grande provoca que todos los árboles se parezcan entre sí, sobre ajusta el modelo. Un mtry muy pequeño no sobreajusta, pero pierde precisión.) 
+
+Por otro lado se obtiene la cantidad de recall (Sensibilidad) del modelo, que indica el grado de aciertos que tuvo el modelo, es decir, cuántos datos de éxito fueron clasificados como éxito. En este caso, de la cantidad de incendios qué proporción fue clasificada como incendio de verdad. 
+
+Luego, el valor de Spec, es el valor de especificidad es la cantidad de no éxitos clasificados como no éxitos correctamente. 
+
+Se presenta ahora el valor de la pérdida logarítimica:
+
+```{r pérdida logaritmica - Random Forest}
+probabilidades <- predict(modelo, newdata = data.test, type = "prob")
+
+
+prob_pos <- probabilidades[, "Incendio"]  
+
+y_true <- ifelse(data.test$Classes == "Incendio", 1, 0)
+
+epsilon <- 1e-15
+prob_pos <- pmin(pmax(prob_pos, epsilon), 1 - epsilon)
+
+log_loss <- -mean(y_true * log(prob_pos) + (1 - y_true) * log(1 - prob_pos))
+print(log_loss)
+```
+Un valor cercano a 0 de la pérdida logarítmica implica que el modelo está realizando una buena clasificación. 
+
+Se procede con un gráfico de la importancia de la variables a la hora de predecir. Se presentan los gráficos tanto usado por la librería Random Forest, como la librería Caret. Primero con la librería Random Forest.
+
+
+```{r importancia con Random Forest}
+imp <- importance(modelo)  # modelo es tu randomForest
+
+# Transformar a data.frame para ggplot
+df_imp <- data.frame(
+  Variable = rownames(imp),
+  Importance = imp[, "MeanDecreaseGini"]
+)
+
+# Ordenar variables
+df_imp <- df_imp[order(df_imp$Importance, decreasing = TRUE), ]
+
+# Graficar
+ggplot(df_imp, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "darkorange") +
+  coord_flip() +
+  labs(title = "Importancia de Variables (MeanDecreaseGini)", x = "Variable", y = "Importancia") +
+  theme_minimal()
+```
+Según las funciones de la librería Random Forest, se tiene que la variable de mayor importancia es ```FFMC```, seguido por ```ISI```.
+
+Por otro lado, graficando la importancia de las variables utilizando la librería Caret, se tiene lo siguiente:
+
+```{r importancia con Caret}
+imp <- varImp(modelo_rf_cv)  
+
+df_imp <- data.frame(
+  Variable = rownames(imp$importance),
+  Importance = imp$importance$Overall
+)
+
+# Ordenar variables por importancia
+df_imp <- df_imp[order(df_imp$Importance, decreasing = TRUE), ]
+
+ggplot(df_imp, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Importancia de Variables", x = "Variable", y = "Importancia") +
+  theme_minimal()
+```
+Hay un cambio entre las dos primeras variables, sin embargo, el modelo se está entrenando de una manera similar, lo que sugiere que el modelo está discriminando bien a la hora de clasificar incendios. 
+
+El siguiente código tiene la intención de evaluar las bondades del modelo, es decir, dar estadísticos para evaluar su precisión y capacidad de predicción/clasificación.
+
+```{r metricas Random Forest}
+predicciones <- predict(modelo, newdata = data.test)
+
+# Matriz de confusión
+confusionMatrix(predicciones, data.test$Classes)
+```
+
+Analizando los resultados de este código, se tiene que: 
+
+- Accuracy es de 1, lo que significa que el modelo predice muy bien. 
+- Lo siguiente es el intervalo de confianza donde se encuentran el 95% de los datos.
+- No Information Rate (NIR) es una tasa que significa que si el modelo siempre predijera incendios, entonces el modelo acertaría el 59% de las veces, es decir, ligeramente mejor que al azar. Lo que significa que nuestro clasificador está bien, pues es superior a este valor. 
+- El p-value es simplemente una prueba de hipótesis que se realiza. La hipótesis nula del modelo dice que el modelo de clasificación no es mejor que el modelo que siempre clasifica incendio. En este caso, el valor es muy significativo, por lo que hay evidencia estadística fuerte para rechazar la hipótesis nula. 
+- El índice kappa está dando 1, lo que significa que la suerte no está influyendo en el resultado. Es decir, entre más bajo es el índice kappa, significa que por azar, se está clasificando de manera correcta. Entre más alto significa que el modelo está clasificando correctamente porque aprendió. 
+
+Se grafica la matriz de confusión para su visualización. 
+
+```{r gráfico matriz confusión}
+library(yardstick)
+
+df_pred <- data.frame(
+  truth = data.test$Classes,
+  prediction = predicciones
+)
+
+# Graficar matriz de confusión
+conf_mat_plot <- conf_mat(df_pred, truth, prediction)
+
+autoplot(conf_mat_plot, type = "heatmap") +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme_minimal() +
+  labs(title = "Matriz de Confusión",
+       x = 'Verdadero',
+       y = 'predicción')
+```
+
+
+Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
+
+```{r curva ROC - Random Forest}
+roc_rf <- roc(
+  response = data.test$Classes,
+  predictor = prob_rf$Incendio,
+  levels = c("No.incendio", "Incendio") # muy importante
+)
+
+plot(roc_rf, col = "#F8766D", lwd = 2, main = "Curva ROC - Random Forest")
+auc(roc_rf)  # esto te da el valor del AUC
+```
+
+```{r Área bajo la curva, ROC}
+auc(roc_rf)
+```
+
+
 
 ## XGBoost
 
@@ -571,7 +746,7 @@ En este caso, se pueden ver los parámetros óptimos del modelo, en donde:
 
 ## Random forest
 
-a
+
 
 ## XGBoost
 
