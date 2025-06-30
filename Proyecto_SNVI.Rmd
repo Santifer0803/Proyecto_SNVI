@@ -727,7 +727,7 @@ Se procede con la curva ROC, la cual tiene la intención de presentar de manera 
 ```{r curva_ROC}
 roc.rf <- roc(
   response = data.test$Classes,
-  predictor = prob.rf$Incendio,
+  predictor = df.pred$Incendio,
   levels = c("No.incendio", "Incendio") # muy importante
 )
 
