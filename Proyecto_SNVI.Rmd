@@ -727,7 +727,7 @@ Se procede con la curva ROC, la cual tiene la intención de presentar de manera 
 ```{r curva_ROC}
 roc.rf <- roc(
   response = data.test$Classes,
-  predictor = df.pred$Incendio,
+  predictor = ifelse(df.pred$prediction == "Incendio", 1, 0),
   levels = c("No.incendio", "Incendio") # muy importante
 )
 
@@ -742,11 +742,13 @@ ggplot(roc.df.rf, aes(x = 1 - specificity, y = sensitivity)) +
   geom_line(color = "#F8766D", size = 1.2) +
   geom_abline(linetype = "dashed", color = "gray") +
   labs(
-    x = "Tasa de falsos positivos (1 - Especificidad)",
-    y = "Tasa de verdaderos positivos (Sensibilidad)"
+    x = "1 - Especificidad",
+    y = "Sensibilidad"
   ) +
   theme_cowplot()
-auc(roc.rf)  # Esto da el valor del AUC
+
+# Esto da el valor del AUC
+auc(roc.rf)
 ```
 
 ## XGBoost
@@ -805,8 +807,8 @@ ggplot(roc.df.xgb, aes(x = 1 - specificity, y = sensitivity)) +
   geom_line(color = "#F8766D", size = 1.2) +
   geom_abline(linetype = "dashed", color = "gray") +
   labs(
-    x = "Tasa de falsos positivos (1 - Especificidad)",
-    y = "Tasa de verdaderos positivos (Sensibilidad)"
+    x = "1 - Especificidad",
+    y = "Sensibilidad"
   ) +
   theme_cowplot()
 
