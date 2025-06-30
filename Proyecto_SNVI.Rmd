@@ -881,4 +881,3 @@ prob.incendio <- pmin(pmax(prob.incendio, 1e-15), 1 - 1e-15)
 log.loss <- -mean(obs.incendio * log(prob.incendio) + (1 - obs.incendio) * log(1 - prob.incendio))
 cat("La pérdida logarítmica (log-loss) es: ", log.loss)
 ```
-
