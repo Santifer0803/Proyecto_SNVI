@@ -403,8 +403,6 @@ El número de pliegues, o folds, es la cantidad de subconjuntos en la cual se va
 Por otro lado, mtry es otro hiperparámetro que lo que busca es una diferenciación de los árboles, es decir, hacer que los árboles no sean iguales entre sí. 
 
 ```{r validación_cruzada_Random_Forest}
-set.seed(0609) # Fijamos la semilla
-
 control <- trainControl(
   method = "cv", # Método de Validación Cruzada
   number = 5, # Número de pliegues
@@ -430,118 +428,6 @@ Según los resultados anteriores, el ROC más grande se obtiene cuando se toma c
 Por otro lado se obtiene la cantidad de recall (sensibilidad) del modelo, que indica el grado de aciertos que tuvo el modelo, es decir, cuántos datos de éxito fueron clasificados como éxito. En este caso, de la cantidad de incendios qué proporción fue clasificada como incendio de verdad. 
 
 Luego, el valor de Spec es el valor de especificidad, que indica la cantidad de no éxitos clasificados como no éxitos correctamente. 
-
-Se presenta ahora el valor de la pérdida logarítimica:
-
-```{r pérdida_logarítmica_Random_Forest}
-probabilidades <- predict(modelo, newdata = data.test, type = "prob")
-
-prob.pos <- probabilidades[, "Incendio"]  
-
-y.true <- ifelse(data.test$Classes == "Incendio", 1, 0)
-
-epsilon <- 1e-15
-prob.pos <- pmin(pmax(prob.pos, epsilon), 1 - epsilon)
-
-log.loss <- -mean(y.true * log(prob.pos) + (1 - y.true) * log(1 - prob.pos))
-print(log.loss)
-```
-
-Un valor cercano a 0 de la pérdida logarítmica implica que el modelo está realizando una buena clasificación. 
-
-Se procede con un gráfico de la importancia de las variables a la hora de predecir. Se presentan los gráficos tanto usando la librería Random Forest, como la librería Caret. Primero con la librería Random Forest.
-
-```{r importancia_Random_Forest}
-imp <- importance(modelo)
-
-# Se transforma a data.frame
-df.imp <- data.frame(
-  Variable = rownames(imp),
-  Importance = imp[, "MeanDecreaseGini"]
-)
-
-# Se ordenan las variables
-df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
-
-# Graficamos
-ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkorange") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importancia") +
-  theme_cowplot()
-```
-
-Según las funciones de la librería Random Forest, se tiene que la variable de mayor importancia es ```FFMC```, seguido por ```ISI```.
-
-Por otro lado, graficando la importancia de las variables utilizando la librería Caret, se tiene lo siguiente:
-
-```{r importancia_Caret}
-imp <- varImp(modelo.rf.cv)  
-
-df.imp <- data.frame(
-  Variable = rownames(imp$importance),
-  Importance = imp$importance$Overall
-)
-
-# Se ordenan las variables por importancia
-df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
-
-ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importancia") +
-  theme_cowplot()
-```
-
-Hay un cambio entre las dos primeras variables, sin embargo, el modelo se está entrenando de una manera similar, lo que sugiere que el modelo está discriminando bien a la hora de clasificar incendios. 
-
-El siguiente código tiene la intención de evaluar las bondades del modelo, es decir, dar estadísticos para evaluar su precisión y capacidad de predicción/clasificación.
-
-```{r metricas_Random_Forest}
-predicciones <- predict(modelo, newdata = data.test)
-
-# Matriz de confusión
-confusionMatrix(predicciones, data.test$Classes)
-```
-
-Analizando los resultados de este código, se tiene que: 
-
-- Accuracy es de 1, lo que significa que el modelo predice muy bien. 
-- Lo siguiente es el intervalo de confianza donde se encuentran el 95% de los datos.
-- No Information Rate (NIR) es una tasa que significa que si el modelo siempre predijera incendios, entonces el modelo acertaría el 59% de las veces, es decir, ligeramente mejor que al azar. Lo que significa que nuestro clasificador está bien, pues es superior a este valor. 
-- El p-value es simplemente una prueba de hipótesis que se realiza. La hipótesis nula del modelo dice que el modelo de clasificación no es mejor que el modelo que siempre clasifica incendio. En este caso, el valor es muy significativo, por lo que hay evidencia estadística fuerte para rechazar la hipótesis nula. 
-- El índice kappa está dando 1, lo que significa que la suerte no está influyendo en el resultado. Es decir, entre más bajo es el índice kappa, significa que por azar, se está clasificando de manera correcta. Entre más alto significa que el modelo está clasificando correctamente porque aprendió. 
-
-Se grafica la matriz de confusión para su visualización. 
-
-```{r gráfico_matriz_confusión}
-df.pred <- data.frame(
-  truth = data.test$Classes,
-  prediction = predicciones
-)
-
-# Graficamos la matriz de confusión
-conf.mat.plot <- conf_mat(df.pred, truth, prediction)
-
-autoplot(conf.mat.plot, type = "heatmap") +
-  scale_fill_gradient(low = "white", high = "darkred") +
-  theme_cowplot() +
-  labs(x = 'Verdadero',
-       y = 'Predicción')
-```
-
-Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
-
-```{r curva_ROC}
-roc.rf <- roc(
-  response = data.test$Classes,
-  predictor = prob.rf$Incendio,
-  levels = c("No.incendio", "Incendio") # muy importante
-)
-
-plot(roc.rf, col = "#F8766D", lwd = 2, main = "Curva ROC - Random Forest")
-auc(roc.rf)  # Esto da el valor del AUC
-```
 
 ## XGBoost
 
@@ -737,7 +623,131 @@ En este caso, se pueden ver los parámetros óptimos del modelo, en donde:
 
 ## Random forest
 
-A
+Se presenta ahora el valor de la pérdida logarítimica:
+
+```{r pérdida_logarítmica_Random_Forest}
+probabilidades <- predict(modelo, newdata = data.test, type = "prob")
+
+prob.pos <- probabilidades[, "Incendio"]  
+
+y.true <- ifelse(data.test$Classes == "Incendio", 1, 0)
+
+epsilon <- 1e-15
+prob.pos <- pmin(pmax(prob.pos, epsilon), 1 - epsilon)
+
+log.loss <- -mean(y.true * log(prob.pos) + (1 - y.true) * log(1 - prob.pos))
+print(log.loss)
+```
+
+Un valor cercano a 0 de la pérdida logarítmica implica que el modelo está realizando una buena clasificación. 
+
+Se procede con un gráfico de la importancia de las variables a la hora de predecir. Se presentan los gráficos tanto usando la librería Random Forest, como la librería Caret. Primero con la librería Random Forest.
+
+```{r importancia_Random_Forest}
+imp <- importance(modelo)
+
+# Se transforma a data.frame
+df.imp <- data.frame(
+  Variable = rownames(imp),
+  Importance = imp[, "MeanDecreaseGini"]
+)
+
+# Se ordenan las variables
+df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
+
+# Graficamos
+ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "darkorange") +
+  coord_flip() +
+  labs(x = "Variable", y = "Importancia") +
+  theme_cowplot()
+```
+
+Según las funciones de la librería Random Forest, se tiene que la variable de mayor importancia es ```FFMC```, seguido por ```ISI```.
+
+Por otro lado, graficando la importancia de las variables utilizando la librería Caret, se tiene lo siguiente:
+
+```{r importancia_Caret}
+imp <- varImp(modelo.rf.cv)  
+
+df.imp <- data.frame(
+  Variable = rownames(imp$importance),
+  Importance = imp$importance$Overall
+)
+
+# Se ordenan las variables por importancia
+df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
+
+ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(x = "Variable", y = "Importancia") +
+  theme_cowplot()
+```
+
+Hay un cambio entre las dos primeras variables, sin embargo, el modelo se está entrenando de una manera similar, lo que sugiere que el modelo está discriminando bien a la hora de clasificar incendios. 
+
+El siguiente código tiene la intención de evaluar las bondades del modelo, es decir, dar estadísticos para evaluar su precisión y capacidad de predicción/clasificación.
+
+```{r metricas_Random_Forest}
+predicciones <- predict(modelo, newdata = data.test)
+
+# Matriz de confusión
+confusionMatrix(predicciones, data.test$Classes)
+```
+
+Analizando los resultados de este código, se tiene que: 
+
+- Accuracy es de 1, lo que significa que el modelo predice muy bien. 
+- Lo siguiente es el intervalo de confianza donde se encuentran el 95% de los datos.
+- No Information Rate (NIR) es una tasa que significa que si el modelo siempre predijera incendios, entonces el modelo acertaría el 59% de las veces, es decir, ligeramente mejor que al azar. Lo que significa que nuestro clasificador está bien, pues es superior a este valor. 
+- El p-value es simplemente una prueba de hipótesis que se realiza. La hipótesis nula del modelo dice que el modelo de clasificación no es mejor que el modelo que siempre clasifica incendio. En este caso, el valor es muy significativo, por lo que hay evidencia estadística fuerte para rechazar la hipótesis nula. 
+- El índice kappa está dando 1, lo que significa que la suerte no está influyendo en el resultado. Es decir, entre más bajo es el índice kappa, significa que por azar, se está clasificando de manera correcta. Entre más alto significa que el modelo está clasificando correctamente porque aprendió. 
+
+Se grafica la matriz de confusión para su visualización. 
+
+```{r gráfico_matriz_confusión}
+df.pred <- data.frame(
+  truth = data.test$Classes,
+  prediction = predicciones
+)
+
+# Graficamos la matriz de confusión
+conf.mat.plot <- conf_mat(df.pred, truth, prediction)
+
+autoplot(conf.mat.plot, type = "heatmap") +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  theme_cowplot() +
+  labs(x = 'Verdadero',
+       y = 'Predicción')
+```
+
+Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
+
+```{r curva_ROC}
+roc.rf <- roc(
+  response = data.test$Classes,
+  predictor = prob.rf$Incendio,
+  levels = c("No.incendio", "Incendio") # muy importante
+)
+
+# Se obtiene un dataframe de los parámetros para construir la curva ROC
+roc.df.rf <- data.frame(
+  specificity = rev(roc.rf$specificities),
+  sensitivity = rev(roc.rf$sensitivities)
+)
+
+# Gráfico de la curva ROC
+ggplot(roc.df.rf, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(color = "#F8766D", size = 1.2) +
+  geom_abline(linetype = "dashed", color = "gray") +
+  labs(
+    x = "Tasa de falsos positivos (1 - Especificidad)",
+    y = "Tasa de verdaderos positivos (Sensibilidad)"
+  ) +
+  theme_cowplot()
+auc(roc.rf)  # Esto da el valor del AUC
+```
 
 ## XGBoost
 
@@ -784,11 +794,21 @@ roc.xgb <-
     direction = ">"
   )
 
-# Se grafica el ROC
-plot(roc.xgb,
-     col = "#F8766D",
-     lwd = 2,
-     legacy.axes = TRUE)
+# Se obtiene un dataframe de los parámetros para construir la curva ROC
+roc.df.xgb <- data.frame(
+  specificity = rev(roc.xgb$specificities),
+  sensitivity = rev(roc.xgb$sensitivities)
+)
+
+# Gráfico de la curva ROC
+ggplot(roc.df.xgb, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(color = "#F8766D", size = 1.2) +
+  geom_abline(linetype = "dashed", color = "gray") +
+  labs(
+    x = "Tasa de falsos positivos (1 - Especificidad)",
+    y = "Tasa de verdaderos positivos (Sensibilidad)"
+  ) +
+  theme_cowplot()
 
 # Valor del AUC
 auc(roc.xgb)
