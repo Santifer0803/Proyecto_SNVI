@@ -914,7 +914,7 @@ En este gráfico se observa que ambas categorías están bastante balanceadas, l
 
 Esto se observa debido a que, se ha demostrado, que el desequilibrio entre clases puede influir negativamente en el entrenamiento de un modelo. A continuación la cita:
 
-@article{BudaMateusz2018Asso,
+@article{BM18,
 issn = {0893-6080},
 journal = {Neural networks},
 volume = {106},
@@ -968,3 +968,18 @@ ggplot(incendios, aes(x = FWI, fill = Classes)) +
   theme_cowplot()
 ```
 
+En los 3 casos anteriores, se puede ver una clara separación entre los casos en donde ocurre el incendio y en los que no sucede, con una única variable. Esto indica que estos factores son buenos discriminadores con respecto al estado del suceso.
+
+En diversos estudios se señala la importancia de seleccionar estas variables. Más aún; algoritmos como *Random forest* se suelen utilizar para escoger dichas variables (cita que está abajo). Lo cual explica por qué se da un rendimiento tan elevado en los modelos propuestos.
+
+@article{CR20,
+issn = {2196-1115},
+journal = {Journal of big data},
+volume = {7},
+publisher = {Springer International Publishing},
+number = {1},
+year = {2020},
+title = {Selecting critical features for data classification based on machine learning methods},
+author = {Chen, Rung-Ching and Dewi, Christine and Huang, Su-Wen and Caraka, Rezzy Eko},
+DOI = {https://doi.org/10.1186/s40537-020-00327-4}
+}
