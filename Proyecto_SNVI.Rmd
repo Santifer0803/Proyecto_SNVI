@@ -883,3 +883,88 @@ prob.incendio <- pmin(pmax(prob.incendio, 1e-15), 1 - 1e-15)
 log.loss <- -mean(obs.incendio * log(prob.incendio) + (1 - obs.incendio) * log(1 - prob.incendio))
 cat("La pérdida logarítmica (log-loss) es: ", log.loss)
 ```
+
+# Justificación de los resultados
+
+Como los resultados del ajuste parecen tan buenos, se buscarán razones por las que esto pueda pasar.
+
+Inicialmente, se muestra el porcentaje de incendios y de no incendios en los datos disponibles.
+
+```{r porcentaje_incendios}
+# DataFrame con el porcentaje de incendios
+porcentaje.incendios <-
+  data.frame(porcentaje = c((
+    sum(incendios$Classes == "Incendio") / nrow(incendios)
+  ), 1 - (
+    sum(incendios$Classes == "Incendio") / nrow(incendios)
+  )),
+  clase = c("Incendio", "No incendio"))
+
+# Se imprime para ver los valores exactos
+porcentaje.incendios
+
+# Gráfico de los porcentajes
+ggplot(porcentaje.incendios, aes(x = clase, y = porcentaje * 100)) +
+  geom_bar(stat = "identity", fill = "#00BFC4") +
+  labs(x = "Categoría", y = "Porcentaje") +
+  theme_cowplot()
+```
+
+En este gráfico se observa que ambas categorías están bastante balanceadas, lo cual suele favorecer el rendimiento de los modelos de clasificación.
+
+Esto se observa debido a que, se ha demostrado, que el desequilibrio entre clases puede influir negativamente en el entrenamiento de un modelo. A continuación la cita:
+
+@article{BudaMateusz2018Asso,
+issn = {0893-6080},
+journal = {Neural networks},
+volume = {106},
+publisher = {Elsevier Ltd},
+year = {2018},
+title = {A systematic study of the class imbalance problem in convolutional neural networks},
+author = {Buda, Mateusz and Maki, Atsuto and Mazurowski, Maciej A.},
+DOI = {https://doi.org/10.1016/j.neunet.2018.07.011}
+}
+
+Luego, otro factor que puede afectar a la clasificación son las variables predictoras. En este caso, existe la posibilidad de que una variable, individualmente, distinga la clase que se quiere predecir. A continuación se hace el análisis con las variables de mayor importancia para los modelos.
+
+```{r discriminaicon_var}
+# Gráfico de densidad del ISI separado por variable predictora
+ggplot(incendios, aes(x = ISI, fill = Classes)) +
+  geom_density(alpha = 0.5, position = "identity") +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_fill_manual(
+    values = c("Incendio" = "#00BFC4", "No.incendio" = "#F8766D"),
+    labels = c("fire" = "Incendio", "No.incendio" = "No incendio"),
+    name = "Estado"
+  ) +
+  labs(x = "ISI",
+       y = "Densidad") +
+  theme_cowplot()
+
+# Gráfico de densidad del FFMC separado por variable predictora
+ggplot(incendios, aes(x = FFMC, fill = Classes)) +
+  geom_density(alpha = 0.5, position = "identity") +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_fill_manual(
+    values = c("Incendio" = "#00BFC4", "No.incendio" = "#F8766D"),
+    labels = c("fire" = "Incendio", "No.incendio" = "No incendio"),
+    name = "Estado"
+  ) +
+  labs(x = "FFMC",
+       y = "Densidad") +
+  theme_cowplot()
+
+# Gráfico de densidad del FWI separado por variable predictora
+ggplot(incendios, aes(x = FWI, fill = Classes)) +
+  geom_density(alpha = 0.5, position = "identity") +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_fill_manual(
+    values = c("Incendio" = "#00BFC4", "No.incendio" = "#F8766D"),
+    labels = c("fire" = "Incendio", "No.incendio" = "No incendio"),
+    name = "Estado"
+  ) +
+  labs(x = "FWI",
+       y = "Densidad") +
+  theme_cowplot()
+```
+
