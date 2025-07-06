@@ -692,8 +692,13 @@ El siguiente código tiene la intención de evaluar las bondades del modelo, es 
 ```{r metricas_Random_Forest}
 predicciones <- predict(modelo, newdata = data.test)
 
+predicciones <- factor(predicciones, levels = c("No.incendio", "Incendio"))
+reales <- factor(data.test$Classes, levels = c("No.incendio", "Incendio"))
+
 # Matriz de confusión
-confusionMatrix(predicciones, data.test$Classes)
+mat.conf <- confusionMatrix(predicciones, reales, positive = "Incendio")
+
+mat.conf
 ```
 
 Analizando los resultados de este código, se tiene que: 
@@ -707,19 +712,21 @@ Analizando los resultados de este código, se tiene que:
 Se grafica la matriz de confusión para su visualización. 
 
 ```{r gráfico_matriz_confusión}
-df.pred <- data.frame(
-  truth = data.test$Classes,
-  prediction = predicciones
-)
+mat.conf.df <- as.data.frame(mat.conf$table)
 
-# Graficamos la matriz de confusión
-conf.mat.plot <- conf_mat(df.pred, truth, prediction)
+mat.conf.df$Reference <- factor(mat.conf.df$Reference, 
+                                levels = c("Incendio", "No.incendio"))
 
-autoplot(conf.mat.plot, type = "heatmap") +
-  scale_fill_gradient(low = "white", high = "darkred") +
+mat.conf.df$Prediction <- factor(mat.conf.df$Prediction, 
+                                 levels = c("No.incendio", "Incendio"))
+
+ggplot(mat.conf.df, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 5) +
+  scale_fill_gradient(low = "white", high = "#F8766D") +
+  labs(x = "Predicción", y = "Real") +
   theme_cowplot() +
-  labs(x = 'Verdadero',
-       y = 'Predicción')
+  theme(legend.position = "none")
 ```
 
 Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
