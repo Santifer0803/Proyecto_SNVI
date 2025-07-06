@@ -746,7 +746,7 @@ roc.df.rf <- data.frame(
 
 # Gráfico de la curva ROC
 ggplot(roc.df.rf, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(color = "#F8766D", size = 1.2) +
+  geom_line(color = "#F8766D", linewidth = 1.2) +
   geom_abline(linetype = "dashed", color = "gray") +
   labs(
     x = "1 - Especificidad",
