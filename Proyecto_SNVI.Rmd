@@ -27,7 +27,8 @@ pacman::p_load(ggplot2,
                randomForest,
                tidyverse,
                pROC,
-               yardstick)
+               yardstick,
+               pROC)
 ```
 
 Se lee la base de incendios forestales en Argelia.
@@ -732,30 +733,35 @@ ggplot(mat.conf.df, aes(x = Prediction, y = Reference, fill = Freq)) +
 Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
 
 ```{r curva_ROC}
-roc.rf <- roc(
-  response = data.test$Classes,
-  predictor = ifelse(df.pred$prediction == "Incendio", 1, 0),
-  levels = c("No.incendio", "Incendio") # muy importante
-)
+# Cargar la librería necesaria
+library(pROC)
 
-# Se obtiene un dataframe de los parámetros para construir la curva ROC
-roc.df.rf <- data.frame(
-  specificity = rev(roc.rf$specificities),
-  sensitivity = rev(roc.rf$sensitivities)
-)
+# 1. Obtener probabilidades predichas (para clase positiva)
+probabilidades <- predict(modelo, newdata = data.test, type = "prob")
+prob_pos <- probabilidades[, "Incendio"]
 
-# Gráfico de la curva ROC
-ggplot(roc.df.rf, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(color = "#F8766D", linewidth = 1.2) +
-  geom_abline(linetype = "dashed", color = "gray") +
-  labs(
-    x = "1 - Especificidad",
-    y = "Sensibilidad"
-  ) +
-  theme_cowplot()
+# 2. Definir clases reales
+clases_reales <- factor(data.test$Classes, levels = c("No.incendio", "Incendio"))
 
-# Esto da el valor del AUC
-auc(roc.rf)
+# 3. Calcular curva ROC
+roc_rf <- roc(response = clases_reales,
+              predictor = prob_pos,
+              levels = c("No.incendio", "Incendio"))  # Clase positiva es "Incendio"
+
+# 4. Graficar curva ROC
+plot(roc_rf,
+     col = "#F8766D",
+     lwd = 2,
+     main = "Curva ROC - Random Forest",
+     xlab = "1 - Especificidad (Falsos Positivos)",
+     ylab = "Sensibilidad (Verdaderos Positivos)")
+abline(a = 0, b = 1, col = "gray", lty = 2)  # Línea aleatoria
+
+# 5. Mostrar el valor del AUC
+auc_valor <- auc(roc_rf)
+legend("bottomright", legend = paste("AUC =", round(auc_valor, 4)), bty = "n")
+
+
 ```
 
 ## XGBoost
