@@ -666,7 +666,7 @@ ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
 
 Según las funciones de la librería Random Forest, se tiene que la variable de mayor importancia es ```FFMC```, seguido por ```ISI```.
 
-Por otro lado, graficando la importancia de las variables utilizando la librería Caret, se tiene lo siguiente:
+Por otro lado, graficando la importancia de las variables utilizando la librería caret, se tiene lo siguiente:
 
 ```{r importancia_Caret}
 imp <- varImp(modelo.rf.cv)  
@@ -724,7 +724,7 @@ mat.conf.df$Prediction <- factor(mat.conf.df$Prediction,
 ggplot(mat.conf.df, aes(x = Prediction, y = Reference, fill = Freq)) +
   geom_tile(color = "white") +
   geom_text(aes(label = Freq), size = 5) +
-  scale_fill_gradient(low = "white", high = "#F8766D") +
+  scale_fill_gradient(low = "white", high = "lightgreen") +
   labs(x = "Predicción", y = "Real") +
   theme_cowplot() +
   theme(legend.position = "none")
@@ -733,49 +733,39 @@ ggplot(mat.conf.df, aes(x = Prediction, y = Reference, fill = Freq)) +
 Se procede con la curva ROC, la cual tiene la intención de presentar de manera gráfica la capacidad del modelo para clasificar.
 
 ```{r curva_ROC}
-# Cargar la librería necesaria
-library(pROC)
+df.pred <- data.frame(
+  truth = data.test$Classes,
+  prediction = predicciones
+)
 
-# 1. Obtener probabilidades predichas (para clase positiva)
-probabilidades <- predict(modelo, newdata = data.test, type = "prob")
-prob_pos <- probabilidades[, "Incendio"]
+roc.rf <- roc(
+  response = data.test$Classes,
+  predictor = ifelse(df.pred$prediction == "Incendio", 1, 0),
+  levels = c("No.incendio", "Incendio") # muy importante
+)
 
-# 2. Definir clases reales
-clases_reales <- factor(data.test$Classes, levels = c("No.incendio", "Incendio"))
+# Se obtiene un dataframe de los parámetros para construir la curva ROC
+roc.df.rf <- data.frame(
+  specificity = rev(roc.rf$specificities),
+  sensitivity = rev(roc.rf$sensitivities)
+)
 
-# 3. Calcular curva ROC
-roc_rf <- roc(response = clases_reales,
-              predictor = prob_pos,
-              levels = c("No.incendio", "Incendio"))  # Clase positiva es "Incendio"
-
-# 4. Graficar curva ROC
-plot(roc_rf,
-     col = "#F8766D",
-     lwd = 2,
-     main = "Curva ROC - Random Forest",
-     xlab = "1 - Especificidad (Falsos Positivos)",
-     ylab = "Sensibilidad (Verdaderos Positivos)")
-abline(a = 0, b = 1, col = "gray", lty = 2)  # Línea aleatoria
-
-# 5. Mostrar el valor del AUC
-auc_valor <- auc(roc_rf)
-legend("bottomright", legend = paste("AUC =", round(auc_valor, 4)), bty = "n")
-
-
+# Gráfico de la curva ROC
+ggplot(roc.df.rf, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(color = "forestgreen", linewidth = 1.2) +
+  geom_abline(linetype = "dashed", color = "gray") +
+  labs(
+    x = "1 - Especificidad",
+    y = "Sensibilidad"
+  ) +
+  theme_cowplot()
 ```
 
 ## XGBoost
 
-En este punto, se muestran algunas de las metricas del modelo XGBoost.
+En este punto, se muestran algunas de las métricas del modelo XGBoost.
 
-Inicialmente, se puede apreciar uno de los árboles de decisión construidos, este corresponde a separar la variable objetivo en aquellas con un valor menor de $ISI \approx 2.6$ y aquellas con un valor mayor.
-
-```{r arbol_xgb}
-# Gráfico de un árbol de decisión
-# xgb.plot.tree(model = modelo.xgb$finalModel, trees = 0)
-```
-
-Se procede a mostrar la [importancia](https://topepo.github.io/caret/variable-importance.html#an-example-2) de cada una de las variables en el modelo, esto en escala del 0 al 1.
+A continuación se muestra la [importancia](https://topepo.github.io/caret/variable-importance.html#an-example-2) de cada una de las variables en el modelo, esto en escala del 0 al 1.
 
 ```{r importancia_xgb}
 # Se guarda la importancia de las variables
@@ -817,7 +807,7 @@ roc.df.xgb <- data.frame(
 
 # Gráfico de la curva ROC
 ggplot(roc.df.xgb, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(color = "#F8766D", size = 1.2) +
+  geom_line(color = "#F8766D", linewidth = 1.2) +
   geom_abline(linetype = "dashed", color = "gray") +
   labs(
     x = "1 - Especificidad",
