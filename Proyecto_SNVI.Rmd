@@ -409,7 +409,7 @@ control <- trainControl(
   number = 5, # Número de pliegues
   classProbs = TRUE,
   summaryFunction = twoClassSummary,
-  verboseIter = TRUE
+  verboseIter = FALSE
 )
 
 modelo.rf.cv <- train(
@@ -418,7 +418,8 @@ modelo.rf.cv <- train(
   method = "rf",
   ntree = 100,
   trControl = control,
-  metric = "ROC"
+  metric = "ROC",
+  verbose = TRUE
 )
 
 print(modelo.rf.cv)
@@ -649,11 +650,11 @@ Se procede con un gráfico de la importancia de las variables a la hora de prede
 importancia <- varImp(modelo.rf.cv, scale = FALSE)
 
 # Se deja solo el DataFrame
-importancia <- data.frame(variable = rownames(importancia[[1]]),
-                          promedio_importancia = importancia[[1]][, 1])
+importancia <- data.frame(variable = rownames(importancia$importance),
+                          promedio_importancia = importancia$importance[, 1])
 
 # Se grafica lo anterior
-ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedio_importancia)) +
+ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedio_importancia / 100)) +
   geom_bar(stat = "identity", fill = "forestgreen") +
   coord_flip() +
   labs(x = "Categoría", y = "Valor") +
@@ -713,7 +714,7 @@ df.pred <- data.frame(
 roc.rf <- roc(
   response = data.test$Classes,
   predictor = ifelse(df.pred$prediction == "Incendio", 1, 0),
-  levels = c("No.incendio", "Incendio") # muy importante
+  levels = c("No.incendio", "Incendio")
 )
 
 # Se obtiene un dataframe de los parámetros para construir la curva ROC
