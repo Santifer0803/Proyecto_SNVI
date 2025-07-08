@@ -627,7 +627,7 @@ En este caso, se pueden ver los parámetros óptimos del modelo, en donde:
 Se presenta ahora el valor de la pérdida logarítimica:
 
 ```{r pérdida_logarítmica_Random_Forest}
-probabilidades <- predict(modelo, newdata = data.test, type = "prob")
+probabilidades <- predict(modelo.rf.cv, newdata = data.test, type = "prob")
 
 prob.pos <- probabilidades[, "Incendio"]  
 
@@ -642,56 +642,28 @@ print(log.loss)
 
 Un valor cercano a 0 de la pérdida logarítmica implica que el modelo está realizando una buena clasificación. 
 
-Se procede con un gráfico de la importancia de las variables a la hora de predecir. Se presentan los gráficos tanto usando la librería Random Forest, como la librería Caret. Primero con la librería Random Forest.
+Se procede con un gráfico de la importancia de las variables a la hora de predecir.
 
 ```{r importancia_Random_Forest}
-imp <- importance(modelo)
+# Se guarda la importancia de las variables
+importancia <- varImp(modelo.rf.cv, scale = FALSE)
 
-# Se transforma a data.frame
-df.imp <- data.frame(
-  Variable = rownames(imp),
-  Importance = imp[, "MeanDecreaseGini"]
-)
+# Se deja solo el DataFrame
+importancia <- data.frame(variable = rownames(importancia[[1]]),
+                          promedio_importancia = importancia[[1]][, 1])
 
-# Se ordenan las variables
-df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
-
-# Graficamos
-ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkorange") +
+# Se grafica lo anterior
+ggplot(importancia, aes(x = reorder(variable, promedio_importancia), y = promedio_importancia)) +
+  geom_bar(stat = "identity", fill = "forestgreen") +
   coord_flip() +
-  labs(x = "Variable", y = "Importancia") +
+  labs(x = "Categoría", y = "Valor") +
   theme_cowplot()
 ```
-
-Según las funciones de la librería Random Forest, se tiene que la variable de mayor importancia es ```FFMC```, seguido por ```ISI```.
-
-Por otro lado, graficando la importancia de las variables utilizando la librería caret, se tiene lo siguiente:
-
-```{r importancia_Caret}
-imp <- varImp(modelo.rf.cv)  
-
-df.imp <- data.frame(
-  Variable = rownames(imp$importance),
-  Importance = imp$importance$Overall
-)
-
-# Se ordenan las variables por importancia
-df.imp <- df.imp[order(df.imp$Importance, decreasing = TRUE), ]
-
-ggplot(df.imp, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importancia") +
-  theme_cowplot()
-```
-
-Hay un cambio entre las dos primeras variables, sin embargo, el modelo se está entrenando de una manera similar, lo que sugiere que el modelo está discriminando bien a la hora de clasificar incendios. 
 
 El siguiente código tiene la intención de evaluar las bondades del modelo, es decir, dar estadísticos para evaluar su precisión y capacidad de predicción/clasificación.
 
 ```{r metricas_Random_Forest}
-predicciones <- predict(modelo, newdata = data.test)
+predicciones <- predict(modelo.rf.cv, newdata = data.test)
 
 predicciones <- factor(predicciones, levels = c("No.incendio", "Incendio"))
 reales <- factor(data.test$Classes, levels = c("No.incendio", "Incendio"))
